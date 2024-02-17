@@ -510,12 +510,13 @@ def run_command(ctx: click.Context, entity: typing.Union[PythonFunctionWorkflow,
             inputs = {}
             for input_name, _ in entity.python_interface.inputs.items():
                 inputs[input_name] = kwargs.get(input_name)
-
             if not run_level_params.is_remote:
                 with FlyteContextManager.with_context(_update_flyte_context(run_level_params)):
                     if run_level_params.envvars:
                         for env_var, value in run_level_params.envvars.items():
                             os.environ[env_var] = value
+                    if run_level_params.overwrite_cache:
+                        os.environ["FLYTE_LOCAL_CACHE_OVERWRITE"] = "true"
                     output = entity(**inputs)
                     if inspect.iscoroutine(output):
                         # TODO: make eager mode workflows run with local-mode

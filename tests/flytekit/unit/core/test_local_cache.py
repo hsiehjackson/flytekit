@@ -120,6 +120,39 @@ def test_cache_can_be_disabled(monkeypatch):
     assert n_cached_task_calls == 2
 
 
+def test_cache_can_be_overwrite(monkeypatch):
+    @task(cache=True, cache_version="v1")
+    def is_even(n: int) -> bool:
+        global n_cached_task_calls
+        n_cached_task_calls += 1
+        return n % 2 == 0
+
+    assert n_cached_task_calls == 0
+    # Run once and check that the counter is increased
+    assert is_even(n=1) is False
+    assert n_cached_task_calls == 1
+
+    @task(cache=True, cache_version="v1")
+    def is_even(n: int) -> bool:
+        global n_cached_task_calls
+        n_cached_task_calls += 1
+        return n % 2 == 1
+
+    # Run once and check that the value and the counter is the same, i.e. caching
+    assert is_even(n=1) is False
+    assert n_cached_task_calls == 1
+
+    # Run once and check that the value is changed and the counter is increased
+    monkeypatch.setenv("FLYTE_LOCAL_CACHE_OVERWRITE", "true")
+    assert is_even(n=1) is True
+    assert n_cached_task_calls == 2
+
+    # Run again and check that the value and the counter is the same i.e. caching
+    monkeypatch.setenv("FLYTE_LOCAL_CACHE_OVERWRITE", "false")
+    assert is_even(n=1) is True
+    assert n_cached_task_calls == 2
+
+
 def test_shared_tasks_in_two_separate_workflows():
     @task(cache=True, cache_version="0.0.1")
     def is_odd(n: int) -> bool:
